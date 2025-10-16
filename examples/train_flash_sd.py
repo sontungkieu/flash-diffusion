@@ -11,6 +11,7 @@ from diffusers import (
     EulerDiscreteScheduler,
     LCMScheduler,
     StableDiffusionXLPipeline,
+    PNDMScheduler,
 )
 from peft import LoraConfig
 from pytorch_lightning import Trainer, loggers
