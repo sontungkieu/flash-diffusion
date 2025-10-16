@@ -1,12 +1,17 @@
-install uv:
+#1. install uv:
 curl -LsSf https://astral.sh/uv/install.sh | sh
-create env:
+
+#2. create env:
 uv sync
-download dataset:
+
+#3. download dataset:
 uv run makedataset.py
-login huggingface:
+
+#4. login huggingface:
 uv run huggingface-cli login
-login wandb:
+
+#5. login wandb:
 uv run wandb login
-run:
+
+#6. run:
 uv run examples/train_flash_sd.py
