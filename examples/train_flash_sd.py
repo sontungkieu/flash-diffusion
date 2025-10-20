@@ -1,5 +1,6 @@
 import datetime
 import os
+import math
 from copy import deepcopy
 
 import braceexpand
@@ -395,7 +396,18 @@ def main(args):
     os.makedirs(ckpt_path, exist_ok=True)
     run_name = training_signature
 
+
     precision = ("bf16-mixed" if torch.cuda.is_available() and torch.cuda.is_bf16_supported() else "16-mixed")
+
+    devices = int(os.environ["SLURM_NPROCS"]) // int(os.environ["SLURM_NNODES"])
+    num_nodes = int(os.environ["SLURM_NNODES"])
+
+    # Hạ micro-batch để vừa VRAM
+    args["BATCH_SIZE"] = 1  # ví dụ
+
+    # Giữ effective batch ~ 4 (tuỳ bạn muốn)
+    target_global_bs = 4
+    accumulate = max(1, math.ceil(target_global_bs / (args["BATCH_SIZE"] * devices * num_nodes)))
 
     trainer = Trainer(
         accelerator="gpu",
@@ -427,6 +439,7 @@ def main(args):
         num_sanity_val_steps=0,
         precision=precision,
         check_val_every_n_epoch=100000000,
+        accumulate_grad_batches=accumulate,
     )
 
     trainer.fit(pipeline, data_module)
