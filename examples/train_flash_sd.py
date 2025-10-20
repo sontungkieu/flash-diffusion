@@ -4,6 +4,7 @@ from copy import deepcopy
 
 import braceexpand
 import torch.nn as nn
+import torch
 import yaml
 from diffusers import (
     DiffusionPipeline,
@@ -380,6 +381,8 @@ def main(args):
     os.makedirs(ckpt_path, exist_ok=True)
     run_name = training_signature
 
+    precision = ("bf16-mixed" if torch.cuda.is_available() and torch.cuda.is_bf16_supported() else "16-mixed")
+
     trainer = Trainer(
         accelerator="gpu",
         devices=int(os.environ["SLURM_NPROCS"]) // int(os.environ["SLURM_NNODES"]),
@@ -403,7 +406,7 @@ def main(args):
             ),
         ],
         num_sanity_val_steps=0,
-        precision="bf16-mixed",
+        precision=precision,
         check_val_every_n_epoch=100000000,
     )
 
