@@ -16,7 +16,8 @@ from diffusers import (
 )
 from peft import LoraConfig
 from pytorch_lightning import Trainer, loggers
-from pytorch_lightning.callbacks import ModelCheckpoint
+from lightning.pytorch.callbacks import ModelCheckpoint, Callback
+
 
 from flash.data.datasets import DataModule, DataModuleConfig
 from flash.data.filters import (
@@ -46,6 +47,19 @@ from flash.models.unets import DiffusersUNet2DCondWrapper
 from flash.models.vae import AutoencoderKLDiffusers, AutoencoderKLDiffusersConfig
 from flash.trainer import TrainingConfig, TrainingPipeline
 from flash.trainer.loggers import WandbSampleLogger
+
+class GlobalStepLogger(Callback):
+    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+        # đẩy global_step vào callback_metrics để ModelCheckpoint đọc được
+        pl_module.log(
+            "global_step",
+            trainer.global_step,
+            on_step=True,    # log theo step
+            on_epoch=False,  # không gộp theo epoch
+            prog_bar=False,
+            logger=True,
+            rank_zero_only=True,  # tránh trùng log khi DDP
+        )
 
 
 def main(args):
@@ -398,11 +412,16 @@ def main(args):
         ),
         callbacks=[
             WandbSampleLogger(log_batch_freq=args["LOG_EVERY_N_BATCHES"]),
+            GlobalStepLogger(),  
             ModelCheckpoint(
                 dirpath=ckpt_path,
                 filename="{step}",
+                auto_insert_metric_name=False,
+                monitor="global_step",
+                mode="max",
                 every_n_train_steps=args["CKPT_EVERY_N_STEPS"],
-                save_top_k=-1,  # to save all the models
+                save_top_k=1,
+                save_last="link",
             ),
         ],
         num_sanity_val_steps=0,
