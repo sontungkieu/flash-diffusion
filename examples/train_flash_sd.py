@@ -413,7 +413,7 @@ def main(args):
         accelerator="gpu",
         devices=int(os.environ["SLURM_NPROCS"]) // int(os.environ["SLURM_NNODES"]),
         num_nodes=int(os.environ["SLURM_NNODES"]),
-        strategy="ddp_find_unused_parameters_true",
+        strategy="deepspeed_stage_2_offload",
         default_root_dir=dir_path,
         max_epochs=args["MAX_EPOCHS"],
         logger=loggers.WandbLogger(
